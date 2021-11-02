@@ -1,0 +1,4 @@
+data/*
+figs/*
+.ipynb_checkpoints/*
+.DS_Store
