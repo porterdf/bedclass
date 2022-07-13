@@ -1,0 +1,1 @@
+<Query>("FAA_Level_I_mGal"  > -60) AND ("FAA_Level_I_mGal"  &lt; 40)</Query>
