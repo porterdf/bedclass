@@ -67,7 +67,7 @@ def read_UTG_line(infile):
     return df
 
 
-def line_overplot_3(df, my_vars, var_labels, x_var, x_label, my_colors, my_file, use_markers=False, prediction=False):
+def line_overplot_3(df, my_vars, var_labels, x_var, x_label, my_colors, my_title, my_file, use_markers=False, prediction=False):
     import matplotlib.pyplot as plt
     
     fig, ax = plt.subplots(figsize=(10, 4), dpi=80)
@@ -82,9 +82,10 @@ def line_overplot_3(df, my_vars, var_labels, x_var, x_label, my_colors, my_file,
     add_basin_locs(ax)
 
     ax2 = ax.twinx()
+    ax2.grid(False)
     if use_markers == True:
         ax2.plot(df[x_var]/1e3, df[my_vars[1]], 
-                 color=my_colors[1], ls='', marker='s')
+                 color=my_colors[1], ls='', marker='.')
     else:
         ax2.plot(df[x_var]/1e3, df[my_vars[1]], 
                  color=my_colors[1])
@@ -93,6 +94,7 @@ def line_overplot_3(df, my_vars, var_labels, x_var, x_label, my_colors, my_file,
     ax2.spines['right'].set_position(('axes', 1.2))
 
     ax3 = ax.twinx()
+    ax3.grid(False)
     if use_markers == True:
         ax3.plot(df[x_var]/1e3, df[my_vars[2]], 
                  color=my_colors[2], ls='', marker='*')
@@ -103,11 +105,12 @@ def line_overplot_3(df, my_vars, var_labels, x_var, x_label, my_colors, my_file,
     
     if prediction == True:
         ax4 = ax.twinx()
-        ax4.plot(df[x_var].loc[df['y_pred'] == 1]/1e3, df['y_pred'].loc[df['y_pred'] == 1], 
+        ax4.grid(False)
+        ax4.plot(df[x_var].loc[df['predicted_class'] == 1]/1e3, df['predicted_class'].loc[df['predicted_class'] == 1], 
                  color='orange', ls='', marker='v', label='predicted basin')
         ax4.axes.get_yaxis().set_visible(False)
 
-
+    plt.suptitle(my_title)
     plt.tight_layout()
     plt.savefig(my_file)
     plt.show()
@@ -288,7 +291,7 @@ def run_ML_model(df, features, target, model_type='MLP', model_score=True, model
     y_hats = classifier.predict(df[features].values)
 #     df['y_pred'] = y_hats
     
-    return y_hats, classifier
+    return y_hats, classifier, scores
 
 
 def read_ASE_csv(infile, features):
@@ -356,21 +359,19 @@ def predict_csv(classifier, target_datafile, features, model_plots_maps=True):
     df = read_ASE_csv(target_datafile, features)
     
     ## Scale
-    df[features] = StandardScaler().fit_transform(df[features])
+    df_scaled = df.copy()
+    df_scaled[features] = StandardScaler().fit_transform(df[features])
 
     ## Fill NA
     # df_ASE_scaled['water'] = df_ASE_scaled['water'].fillna(0)
-    df.fillna(value=0, inplace=True)
+    df_scaled.fillna(value=0, inplace=True)
     
     ## Interpolat NaNs, then Predict
 #     df['bedmachine'].interpolate(method='polynomial', order=2).plot()
 #     df['boug'].interpolate(method='linear').plot()
-    y_pred_ASE = classifier.predict(df[features].values)
+    y_pred_ASE = classifier.predict(df_scaled[features].values)
     
     ## Save as Pandas DF
-    ## keep location where tests and training data were
-    ## y_test from the split_train function
-    # y_test['preds'] = y_hats
     # df_out = pd.merge(df,y_test[['preds']],how = 'left',left_index = True, right_index = True)
     df['predicted_class'] = y_pred_ASE
 
@@ -379,7 +380,6 @@ def predict_csv(classifier, target_datafile, features, model_plots_maps=True):
         var_plot = 'bedmachine'
         file_plot_ML_map = f'figs/mapplot_ASE_ypred_{var_plot}_script.png'
         plot_ML_map(df, var_plot, file_plot_ML_map)
-
 
     return df
 
